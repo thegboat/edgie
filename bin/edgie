@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'edgie'
+
+Edgie.create(ARGV[0], ARGV[1])
