@@ -18,4 +18,5 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "activesupport", '>=3.0.0'
   gem.add_runtime_dependency "erubis", ">=2.6.0"
   gem.add_development_dependency("rspec")
+  gem.add_development_dependency("ruby-debug19")
 end

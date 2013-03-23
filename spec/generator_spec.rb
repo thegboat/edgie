@@ -14,4 +14,14 @@ describe Edgie::Generator do
     end
   end
 
+  describe "svg file load" do
+    it "should load a svg file correctly" do
+
+      generator = Edgie::Generator.new("spec/test.svg")
+      paths_array = generator.load_paths
+      paths_array.should be_an_instance_of(Array)
+      paths_array.all? {|h| h.is_a?(Hash) && h.key?('id')}.should be (true)
+    end
+  end
+
 end
