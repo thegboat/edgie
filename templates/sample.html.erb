@@ -1,0 +1,29 @@
+<html lang="en">
+  <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">      
+      <script src="raphael.js" type="text/javascript" charset="utf-8"></script>
+  </head>
+  <body>
+
+    <script>
+      paper = Raphael("paper", 865, 765);
+
+      paths = {
+        <% @paths.each do |path_id, path| %>
+          <%= path_id.to_s.ljust(9) %> : <%= path.inspect %>,
+        <% end %>
+      }
+
+      for(var path_id in paths){
+        var path = paths[path_id]
+        var pen = ''
+        for(var coords in path){
+          pen += (!pen ? 'M' : 'L');
+          pen += [path[coords][0], path[coords][1]].join(',');
+        }
+        paper.path(pen).attr({"stroke-width": 1, "stroke-linejoin": "round"})
+      }
+    </script>
+  </body>
+</html>
+

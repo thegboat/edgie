@@ -1,1 +1,4 @@
 *.gem
+test/*
+log/*
+test.js

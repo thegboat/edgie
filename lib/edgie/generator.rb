@@ -4,9 +4,15 @@ module Edgie
 
     include Edgie::Rectangulate
 
-    TEMPLATE_FILE = "#{File.dirname(__FILE__)}/../../templates/edgie.js.erb"
+    DIRNAME = "#{File.dirname(__FILE__)}/../../"
 
-    attr_reader :svg_filename, :paths, :entities
+    TEMPLATE_FILE = DIRNAME + "templates/edgie.js.erb"
+    SAMPLE_TEMPLATE_FILE = DIRNAME + "templates/sample.html.erb"
+    SAMPLE_OUTPUT_FILENAME = DIRNAME + "test/sample.html"
+
+    attr_reader :svg_filename, :paths, :entities, :context
+    attr_writer :sample
+
 
     def initialize(*args)
       @svg_filename = args.first
@@ -17,22 +23,33 @@ module Edgie
     def run
       paths_array = load_paths
       parse_paths(paths_array)
-      #build_edges
+      adjust_for_origin
 
-      template = load_template
-
-      context = Erubis::Context.new(
+      @context = Erubis::Context.new(
         :widget_name => output_filename.gsub('.js', ''),
         :translation_table => translation_table,
         :paths => paths,
         :entities => entities,
         :longest_name => longest_name,
-        :height => height,
-        :width => width
+        :height => sw_point.y_point,
+        :width => sw_point.x_point
       )
 
+      render
+    end
+
+    def render
+      template = load_template
+
       content = template.evaluate(context)
-      File.open(output_filename, 'w+').write(content)
+      file = File.open(output_filename, 'w+')
+      rtn = file.write(content)
+      file.close
+      rtn
+    end
+
+    def sample?
+      @sample
     end
 
     def load_paths
@@ -41,11 +58,12 @@ module Edgie
     end
 
     def load_template
-      input = File.read(TEMPLATE_FILE)
+      input = File.read(sample? ? SAMPLE_TEMPLATE_FILE : TEMPLATE_FILE)
       Erubis::Eruby.new(input)
     end
 
     def output_filename
+      return SAMPLE_OUTPUT_FILENAME if sample? 
       if @output_filename
         @output_filename =~ /\.js$/ ? @output_filename : (@output_filename + ".js")
       else
@@ -67,6 +85,25 @@ module Edgie
       entities.keys.map(&:length).max.to_i + 5
     end
 
+    def adjust_for_origin
+      paths.each do |path_id, path|
+        new_path = Edgie::Path.new(path_id)
+        path.points.each do |point|
+          point.move!(-ne_point.x_point.floor, -ne_point.y_point.floor)
+          new_path << point
+        end
+        paths[path_id] = new_path
+        adjust_rect(new_path.ne_point, new_path.sw_point)
+      end
+
+      entities.each do |name, entity|
+        entity.paths.each do |path_id|
+          path = paths[path_id]
+          entity.adjust_rect(path.ne_point, path.sw_point)
+        end
+      end
+    end
+
     def parse_paths(paths_array)
       counter = 1
 
@@ -81,31 +118,12 @@ module Edgie
           subpath.scan(/\d+\.\d+,\d+\.\d+/).each do |coord|
             result[counter] << coord
           end
-
-          entity.adjust_rect(result[counter].ne_point, result[counter].sw_point)
           adjust_rect(result[counter].ne_point, result[counter].sw_point)
           entity.add_path(counter)
           counter += 1
         end
 
         result
-      end
-    end
-
-    def edge_priority
-      @edge_rank ||= begin
-        paths.values.sort_by do |path|
-          (path.ne_point - midpoint) + (path.sw_point - midpoint)
-        end.map(&:path_id)
-      end
-    end
-
-    def build_edges
-      edge_priority[0..-2].each_with_index do |target_id, index|
-        edge_priority[index..-1].each do |path_id|
-          next unless paths[target_id].neighbors?(paths[path_id])
-          paths[target_id].build_edge(paths[path_id])
-        end
       end
     end
 

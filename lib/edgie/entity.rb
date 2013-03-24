@@ -23,6 +23,10 @@ module Edgie
       paths.map {|path_id| "#{path_id}z"}
     end
 
+    def text_placement
+      midpoint.move(-3*title.length, 0)
+    end
+
 
   end
 end

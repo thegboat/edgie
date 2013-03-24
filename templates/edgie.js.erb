@@ -1,10 +1,23 @@
-(function($) {
+/*
+ * jQuery UI  Interactive Map
+ *
+ * Built using Edgie
+ * https://github.com/thegboat/edgie
+ * 
+ * https://github.com/thegboat/sc_county_map
+ * 
+ * Depends:
+ *  jquery.ui.core.js
+ *  raphael.js
+ */
 
-$.widget("ui.<%= @widget_name %>", {
-  options: {
+
+
+(function(e){e.widget("ui.<%= @widget_name %>",{
+    options: {
     scale: 1.0,
     members: '',
-    'fill' : "#F8F8F8,#AEAEAE",
+    fill : "#F8F8F8,#AEAEAE",
     highlighted  : "#4C7ABF",
     member    : "#B7DFE5,#4CAEBF",
     edge : "#000",
@@ -18,440 +31,14 @@ $.widget("ui.<%= @widget_name %>", {
     preselect : true
   },
 
-  paint : function(shapes, color){
-    this.painted = this.painted || {}
-    var shape_ids = this._parse_shape_collection(shapes)
-    for(var i in shape_ids){
-      var shape_id = shape_ids[i]
-      var entity = this.entities[shape_id]
-      if(!entity) continue;
-      this.painted[shape_id] = true
-      this._change_color(entity, color)
-    }
-  },
-
-  unpaint : function(shapes){
-    if(!this.painted) return false;
-    if(shapes){
-      var shape_ids = this._parse_shape_collection(shapes)
-      for(var i in shape_ids){
-        this._unpaint_one(shape_ids[i]);
-      }
-    }else{
-      for(var shape_id in this.painted){
-        this._unpaint_one(shape_id);
-      }
-    }
-  },
-
-  label : function(text){
-    text = String(text || '')
-    this.header_text.attr({text : text})
-  },
-
-  add_to : function(group_name, options){
-    options = options || {}
-    group_name = group_name.trim()
-    this.groups[group_name] = this.groups[group_name] || {}
-    this._set_color(group_name, options.colors)
-    this.clickable[group_name] = !!options.clickable
-    this._manage_group(group_name, options.shapes, true)
-    if(options.clickable){
-      this.clickable[group_name] = true 
-    }else if(options.clickable == false){
-      delete this.clickable[group_name]
-    }
-    return this[group_name]
-  },
-
-  remove_from : function(group_name, shapes){
-    if(!this.groups[group_name]) return null;
-    if(shapes){
-      this._manage_group(group_name, shapes)
-    }
-    else{
-      for(shape in this.groups[group_name]) { this._manage_group(group_name, shape)}
-    }
-    return this[group_name]
-  },
-
   _translation_table : function(){
     return <%= @translation_table %>
-  },
-
-  _create : function(){
-    this.options = $.extend(this.options,this.element.data());
-    this._info_div(true);
-    this.pen = '';
-
-    this.paper = Raphael(this.element[0], this._scaled(this._width()), this._scaled(this._height()));
-    if(this.core) this.core.remove();
-    this.core = this.paper.set();
-    this.header_text = this.paper.text(this._scaled(this._width()/2), this._scaled(40), '').attr({'font-size' : this._scaled(32)});
-    this.core.push(this.header_text);
-
-    this._create_translation_table();
-
-    this._make_groups();
-    this._set_colors();
-    var to_hlight = this._parse_group('selected');
-    this.entities = this._base_entities(true);
-    this._draw_shapes();
-    this._set_clickable();
-    if(to_hlight) this._clicked(this.entities[to_hlight])
-
-    this.core.toFront();
-    this.paper.safari();
-  },
-
-  _draw_shapes : function(){
-    var entity, paths = this._base_paths();
-    for(var entity_name in this.entities){
-      this._draw_shape(entity_name, paths);
-    }
-  },
-
-  _draw_shape : function(entity_name, paths){
-    paths = paths || this._base_paths();
-    var entity = this.entities[entity_name.trim()];
-    this.pen = '';
-    for(var edge_idx in entity.edges){
-      var reverse = /r$/.test(entity.edges[edge_idx]);
-      var contained = /z$/.test(entity.edges[edge_idx]);
-      var path = paths[parseInt(entity.edges[edge_idx])];
-
-      if(contained) this._write_shape(entity);
-      this._stroke_path(path, reverse);
-
-      if(contained) this._write_shape(entity);
-    }
-    this._write_shape(entity);
-    this._add_label(entity);
-    this._add_events(entity);
-  },
-
-  _write_shape : function(entity, attrs){
-    if(!this.pen || this.pen == 'M') return false ;
-    this.pen += 'Z';
-    color = this._get_color(entity)
-    attrs = attrs || {fill: color, stroke: this.colors.edge, "stroke-width": 1, "stroke-linejoin": "round"};
-    entity.shape.push(this.paper.path(this.pen).attr(attrs));
-    this.pen = '';
-    return true;
-  },
-
-  _stroke_path : function(path,reverse){
-    for(var coords in path){
-      var idx = reverse ? ((path.length-1) - coords) : coords;
-      this.pen += (!this.pen ? 'M' : 'L');
-      this.pen += [this._scaled(path[idx][0]),this._scaled(path[idx][1])].join(',');
-    }
-  },
-
-  _add_label : function(entity){
-    var x = this._scaled(entity.text[0]), y = this._scaled(entity.text[1]);
-    var r = this.paper.print(x,y, entity.title, this.paper.getFont(this.options.font), this._scaled(16));
-    entity.label = r;
-    this.core.push(r);
-  },
-
-  _add_events : function(entity){
-    var map = this;
-    var mover = (function(){
-      map._check_cursor(entity)
-      map.unpaint();
-      if(!map._is_in_group('selected',entity)){
-        var color = map._get_color(entity, true)
-        entity.shape.animate({fill: color, stroke: map.colors.edge}, 200);
-        map.header_text.attr({text : entity.title});
-        map.paper.safari();
-      }
-    });
-    var mout = (function(){
-      map._check_cursor(entity)
-      map.unpaint();
-      if(!map._is_in_group('selected',entity)){
-        entity.shape.animate({fill: map._get_color(entity), stroke: map.colors.edge}, 200);
-        text = map.highlighted ? map.highlighted.title : '';
-        map.header_text.attr({text : text});
-        map.paper.safari();
-      }
-    });
-    entity.shape.hover(mover,mout);
-    entity.label.hover(mover,mout);
-    entity.shape.click(function(){map._clicked(entity)});
-    entity.label.click(function(){map._clicked(entity)});
-  },
-
-  _clicked : function(entity){
-    if(!this._is_clickable(entity)) return false;
-    var other = this.highlighted;
-    this.highlighted = entity;
-    this.unpaint();
-
-    if(this.options.multiselect){
-      if(this.highlighted == other){
-        this._remove_from('selected', this.highlighted, true);
-      }else{
-        this._add_to('selected', this.highlighted);
-      }
-    }
-    else{
-      this._add_to('selected', this.highlighted);
-      if(other != this.highlighted) this._remove_from('selected', other);
-    }
-    if(this.highlighted){
-      this.header_text.attr({text : this.highlighted.title});
-    }
-    this._info_div();
-    if(this.info_div){
-      var info_div = this._get_info_div(entity)
-      if(info_div){
-        this.info_div.html(info_div.html());
-      }
-      else{
-        this.info_div.empty();
-      }
-    }
-    this.paper.safari();
-  },
-
-  _set_clickable : function(){
-    this.clickable = {}
-    if(/(^|,)\s*all\s*($|,)/i.test(this.options.clickable)){
-      for(var group_name in this.groups){
-        this.clickable[group_name] = true
-      }
-    }else{
-      var group_names = this.options.clickable.split(',');
-      for(var i in group_names){
-        this.clickable[group_names[i]] = true
-      }
-    }
-  },
-
-  _is_clickable : function(entity){
-    var click_group = entity.click_group
-    if(this.clickable[click_group] && this.groups[click_group][entity.name]) return true
-    for(var group_name in this.clickable){
-      if(this.groups[group_name][entity.name]){
-        entity.click_group = group_name
-        return true
-      }
-    }
-    if(click_group) delete entity.click_group
-    return false
-  },
-
-  _check_cursor : function(entity){
-    var clickable = this._is_clickable(entity)
-    var label = $(entity.label.node)
-    if(clickable && label.css('cursor')){
-      entity.shape.forEach(function(obj){ $(obj.node).css('cursor', 'pointer') });
-      label.css('cursor', 'pointer');
-    }else if(!clickable && label.css('cursor')){
-      entity.shape.forEach(function(obj){ $(obj.node).css('cursor', false) });
-      label.css('cursor', false);
-    }
-  },
-
-  _set_colors : function(){
-    var hlight = this.options.highlighted.split(',')
-    this.colors = {
-      fill          : this.options.fill.split(','),
-      highlighted   : [hlight[0], hlight[0]],
-      members       : this.options.member.split(','),
-      edge          : this.options.edge,
-    }
-    for(var group_name in this.groups){
-      this._set_color(group_name)
-    }
-  },
-
-  _set_color : function(group_name, colors){
-    if(colors){
-      this.colors[group_name] = colors.split(',')
-    }
-    else if(this.options["color-"+group_name]){
-      this.colors[group_name] = this.options["color-"+group_name].split(',')
-    }
-    else{
-      this.colors[group_name] = this.colors[group_name] || this.colors.fill
-    }
-  },
-
-  _make_groups : function(){
-    this.groups = {members : {}}
-    this._parse_group('members')
-    entities = this._base_entities()
-    for(var group_name in this.options){
-      if(/^group-[A-Za-z0-9]/.test(group_name)){
-        this._parse_group(group_name, entities)
-      }
-    }
-  },
-
-  _parse_group : function(key, entities){
-    var shape_ids = this._parse_shape_collection(this.options[key])
-    var group_name = key.replace(/^group-/,'').trim(), first = null;
-    this.groups[group_name] = {}
-    if(shape_ids.length){
-      entities = entities || this._base_entities();
-      for(i in shape_ids){
-        var val = null;
-        if(entities[shape_ids[i]]) val = shape_ids[i];
-        if(val){
-          this.groups[group_name][val] = true;
-          first = first || val
-          if(key == 'selected' && !this.multiselect) break;
-        }
-      }
-    }
-    return first;
-  },
-
-  _is_in_group : function(group_name, entity){
-    return !!(this.groups[group_name] && this.groups[group_name][entity.name])
-  },
-
-  _get_group : function(entity){
-    if(this._is_in_group('selected', entity)) return 'highlighted'
-    if(this._is_in_group('members', entity)) return 'members'
-    for(var group_name in this.groups){
-      if(this.groups[group_name][entity.name]) return group_name
-    }
-    return null
-  },
-
-  _get_color : function(entity, hovering){
-    group_name = this._get_group(entity)
-    if(group_name){
-      var l = this.colors[group_name].length
-      return (hovering ? this.colors[group_name][l-1] : this.colors[group_name][0])
-    }
-    return (hovering ? this.colors.fill[1] : this.colors.fill[0])
-  },
-
-  _info_div : function(init){
-    if(!this.options.infoselector) return null
-    if(init || !this.preselect){
-      var info_div = $(this.options.infoselector);
-      this.info_div = info_div.length ? info_div : null;
-    }
-  },
-
-  _get_info_div : function(entity, init){
-    if(!this.options.infoselector) return null;
-    if(!entity.info_selector){
-      var sel = this.options.infoselector + "_" + entity.name;
-      if(entity.id) sel += ", " + this.options.infoselector + "_" + entity.id;
-      entity.info_selector = sel;
-    }
-    if(init || !this.preselect){
-      var info_div = $(entity.info_selector);
-      if(info_div.length){
-        if(this.preselect) entity.info_div = info_div;
-        return info_div;
-      }
-    }else{
-      return entity.info_div;
-    }
-    return null;
-  },
-
-  _get_form_input : function(entity, init){
-    if(!this.options.formselector) return null;
-    if(!entity.form_selector){
-      var sel = this.options.formselector.replace(/\|shape_id\|/, entity.name);
-      if(entity.id) sel += ", " + this.options.formselector.replace(/\|shape_id\|/, entity.id);
-      entity.form_selector = sel;
-    }
-    if(init || !this.preselect){
-      var input = $(entity.form_selector);
-      if(input.length){
-        if(this.preselect) entity.form_input = input;
-        return input;
-      }
-    }else{
-      return entity.form_input;
-    }
-    return null;
-  },
-
-  _add_to : function(group_name, entity){
-    if(!entity) return false
-    this.groups[group_name][entity.name] = true;
-    var color = this._get_color(entity)
-    this._change_color(entity, color)
-    if(group_name == 'selected'){
-      var input = this._get_form_input(entity)
-      if(input) input.prop('checked', true);
-    }
-    return true
-  },
-
-  _remove_from : function(group_name, entity, hovering){
-    if(!entity) return false
-    delete this.groups[group_name][entity.name]
-    var color = this._get_color(entity,hovering)
-    this._change_color(entity, color)
-    if(group_name == 'selected'){
-      var input = this._get_form_input(entity)
-      if(input) input.prop('checked', false);
-    }
-    return true
-  },
-
-  _manage_group : function(group_name, shapes, adding){
-    if(!this.groups[group_name]) return false
-    var shape_ids = this._parse_shape_collection(shapes)
-    for(var i in shape_ids){
-      var entity = this.entities[shape_ids[i]]
-      adding ? this._add_to(group_name, entity) : this._remove_from(group_name, entity);
-    }
-    return true
-  },
-
-  _parse_shape_collection : function(shapes){
-    shapes = String(shapes || '')
-    if(!shapes.trim()) return []
-    var map = this
-    return shapes.split(',').map(function(x){
-      var shape = x.trim()
-      shape = map.translation_table[shape] || shape
-      return shape;
-    })
-  },
-
-  _change_color : function(entity, color){
-    if(entity.shape.attr('fill') != color){
-      entity.shape.attr({fill: color, stroke: this.colors.edge});
-    }
-  },
-
-  _scaled : function(val){
-    return val * this.options.scale;
-  },
-
-  _unpaint_one : function(shape_id){
-    shape_id = shape_id.trim()
-    if(!this.painted[shape_id]) return false;
-    delete this.painted[shape_id];
-    var entity = this.entities[shape_id];
-    if(!entity) return false;
-    this._change_color(entity, this._get_color(entity));
-    return true;
-  },
-
-  _create_translation_table : function(){
-    this.translation_table = this.options['translation-table']
-    this.translation_table = this.translation_table || (this._translation_table ? this._translation_table() : {});
   },
 
   _base_entities : function(to_be_stored){
     var entities = {
       <% @entities.each do |name, entity| %>
-        <%= name.ljust(@longest_name) %> : { name : <%= "'#{name}'".ljust(@longest_name) %>, title : <%= "'#{entity.title}'".ljust(@longest_name) %>, text : <%= entity.midpoint.to_s.ljust(15) %>, edges : <%= entity.edges.to_json %>},
+        <%= name.ljust(@longest_name) %> : { name : <%= "'#{name}'".ljust(@longest_name) %>, title : <%= "'#{entity.title}'".ljust(@longest_name) %>, text : <%= entity.text_placement.to_s.ljust(15) %>, edges : <%= entity.edges.to_json %>},
       <% end %>
     };
     if(to_be_stored){
@@ -470,6 +57,14 @@ $.widget("ui.<%= @widget_name %>", {
     return entities;
   },
 
+  _base_paths : function(){
+    return {
+      <% @paths.each do |path_id, path| %>
+        <%= path_id.to_s.ljust(9) %> : <%= path.inspect %>,
+      <% end %>
+    };
+  },
+
   _width : function(){
     return <%= @width.ceil %>
   },
@@ -478,15 +73,7 @@ $.widget("ui.<%= @widget_name %>", {
     return <%= @height.ceil %>
   },
 
-  _base_paths : function(){
-    return {
-      <% @paths.each do |path_id, path| %>
-        <%= path_id.to_s.ljust(9) %> : <%= path.inspect %>,
-      <% end %>
-    };
-  }
-});
-})(jQuery);
+  paint:function(e,t){this.painted=this.painted||{};var n=this._parse_shape_collection(e);for(var r in n){var i=n[r];var s=this.entities[i];if(!s)continue;this.painted[i]=true;this._change_color(s,t)}},unpaint:function(e){if(!this.painted)return false;if(e){var t=this._parse_shape_collection(e);for(var n in t){this._unpaint_one(t[n])}}else{for(var r in this.painted){this._unpaint_one(r)}}},label:function(e){e=String(e||"");this.header_text.attr({text:e})},add_to:function(e,t){t=t||{};e=e.trim();this.groups[e]=this.groups[e]||{};this._set_color(e,t.colors);this.clickable[e]=!!t.clickable;this._manage_group(e,t.shapes,true);if(t.clickable){this.clickable[e]=true}else if(t.clickable==false){delete this.clickable[e]}return this[e]},remove_from:function(e,t){if(!this.groups[e])return null;if(t){this._manage_group(e,t)}else{for(shape in this.groups[e]){this._manage_group(e,shape)}}return this[e]},_create:function(){this.options=e.extend(this.options,this.element.data());this._info_div(true);this.pen="";this.paper=Raphael(this.element[0],this._scaled(this._width()),this._scaled(this._height()));if(this.core)this.core.remove();this.core=this.paper.set();this.header_text=this.paper.text(this._scaled(this._width()/2),this._scaled(40),"").attr({"font-size":this._scaled(32)});this.core.push(this.header_text);this._create_translation_table();this._make_groups();this._set_colors();var t=this._parse_group("selected");this.entities=this._base_entities(true);this._draw_shapes();this._set_clickable();if(t)this._clicked(this.entities[t]);this.core.toFront();this.paper.safari()},_draw_shapes:function(){var e,t=this._base_paths();for(var n in this.entities){this._draw_shape(n,t)}},_draw_shape:function(e,t){t=t||this._base_paths();var n=this.entities[e.trim()];this.pen="";for(var r in n.edges){var i=/r$/.test(n.edges[r]);var s=/z$/.test(n.edges[r]);var o=t[parseInt(n.edges[r])];if(s)this._write_shape(n);this._stroke_path(o,i);if(s)this._write_shape(n)}this._write_shape(n);this._add_label(n);this._add_events(n)},_write_shape:function(e,t){if(!this.pen||this.pen=="M")return false;this.pen+="Z";color=this._get_color(e);t=t||{fill:color,stroke:this.colors.edge,"stroke-width":1,"stroke-linejoin":"round"};e.shape.push(this.paper.path(this.pen).attr(t));this.pen="";return true},_stroke_path:function(e,t){for(var n in e){var r=t?e.length-1-n:n;this.pen+=!this.pen?"M":"L";this.pen+=[this._scaled(e[r][0]),this._scaled(e[r][1])].join(",")}},_add_label:function(e){var t=this._scaled(e.text[0]),n=this._scaled(e.text[1]);var r=this.paper.print(t,n,e.title,this.paper.getFont(this.options.font),this._scaled(16));e.label=r;this.core.push(r)},_add_events:function(e){var t=this;var n=function(){t._check_cursor(e);t.unpaint();if(!t._is_in_group("selected",e)){var n=t._get_color(e,true);e.shape.animate({fill:n,stroke:t.colors.edge},200);t.header_text.attr({text:e.title});t.paper.safari()}};var r=function(){t._check_cursor(e);t.unpaint();if(!t._is_in_group("selected",e)){e.shape.animate({fill:t._get_color(e),stroke:t.colors.edge},200);text=t.highlighted?t.highlighted.title:"";t.header_text.attr({text:text});t.paper.safari()}};e.shape.hover(n,r);e.label.hover(n,r);e.shape.click(function(){t._clicked(e)});e.label.click(function(){t._clicked(e)})},_clicked:function(e){if(!this._is_clickable(e))return false;var t=this.highlighted;this.highlighted=e;this.unpaint();if(this.options.multiselect){if(this.highlighted==t){this._remove_from("selected",this.highlighted,true)}else{this._add_to("selected",this.highlighted)}}else{this._add_to("selected",this.highlighted);if(t!=this.highlighted)this._remove_from("selected",t)}if(this.highlighted){this.header_text.attr({text:this.highlighted.title})}this._info_div();if(this.info_div){var n=this._get_info_div(e);if(n){this.info_div.html(n.html())}else{this.info_div.empty()}}this.paper.safari()},_set_clickable:function(){this.clickable={};if(/(^|,)\s*all\s*($|,)/i.test(this.options.clickable)){for(var e in this.groups){this.clickable[e]=true}}else{var t=this.options.clickable.split(",");for(var n in t){this.clickable[t[n]]=true}}},_is_clickable:function(e){var t=e.click_group;if(this.clickable[t]&&this.groups[t][e.name])return true;for(var n in this.clickable){if(this.groups[n][e.name]){e.click_group=n;return true}}if(t)delete e.click_group;return false},_check_cursor:function(t){var n=this._is_clickable(t);var r=e(t.label.node);if(n&&r.css("cursor")){t.shape.forEach(function(t){e(t.node).css("cursor","pointer")});r.css("cursor","pointer")}else if(!n&&r.css("cursor")){t.shape.forEach(function(t){e(t.node).css("cursor",false)});r.css("cursor",false)}},_set_colors:function(){var e=this.options.highlighted.split(",");this.colors={fill:this.options.fill.split(","),highlighted:[e[0],e[0]],members:this.options.member.split(","),edge:this.options.edge};for(var t in this.groups){this._set_color(t)}},_set_color:function(e,t){if(t){this.colors[e]=t.split(",")}else if(this.options["color-"+e]){this.colors[e]=this.options["color-"+e].split(",")}else{this.colors[e]=this.colors[e]||this.colors.fill}},_make_groups:function(){this.groups={members:{}};this._parse_group("members");entities=this._base_entities();for(var e in this.options){if(/^group-[A-Za-z0-9]/.test(e)){this._parse_group(e,entities)}}},_parse_group:function(e,t){var n=this._parse_shape_collection(this.options[e]);var r=e.replace(/^group-/,"").trim(),s=null;this.groups[r]={};if(n.length){t=t||this._base_entities();for(i in n){var o=null;if(t[n[i]])o=n[i];if(o){this.groups[r][o]=true;s=s||o;if(e=="selected"&&!this.multiselect)break}}}return s},_is_in_group:function(e,t){return!!(this.groups[e]&&this.groups[e][t.name])},_get_group:function(e){if(this._is_in_group("selected",e))return"highlighted";if(this._is_in_group("members",e))return"members";for(var t in this.groups){if(this.groups[t][e.name])return t}return null},_get_color:function(e,t){group_name=this._get_group(e);if(group_name){var n=this.colors[group_name].length;return t?this.colors[group_name][n-1]:this.colors[group_name][0]}return t?this.colors.fill[1]:this.colors.fill[0]},_info_div:function(t){if(!this.options.infoselector)return null;if(t||!this.preselect){var n=e(this.options.infoselector);this.info_div=n.length?n:null}},_get_info_div:function(t,n){if(!this.options.infoselector)return null;if(!t.info_selector){var r=this.options.infoselector+"_"+t.name;if(t.id)r+=", "+this.options.infoselector+"_"+t.id;t.info_selector=r}if(n||!this.preselect){var i=e(t.info_selector);if(i.length){if(this.preselect)t.info_div=i;return i}}else{return t.info_div}return null},_get_form_input:function(t,n){if(!this.options.formselector)return null;if(!t.form_selector){var r=this.options.formselector.replace(/\|shape_id\|/,t.name);if(t.id)r+=", "+this.options.formselector.replace(/\|shape_id\|/,t.id);t.form_selector=r}if(n||!this.preselect){var i=e(t.form_selector);if(i.length){if(this.preselect)t.form_input=i;return i}}else{return t.form_input}return null},_add_to:function(e,t){if(!t)return false;this.groups[e][t.name]=true;var n=this._get_color(t);this._change_color(t,n);if(e=="selected"){var r=this._get_form_input(t);if(r)r.prop("checked",true)}return true},_remove_from:function(e,t,n){if(!t)return false;delete this.groups[e][t.name];var r=this._get_color(t,n);this._change_color(t,r);if(e=="selected"){var i=this._get_form_input(t);if(i)i.prop("checked",false)}return true},_manage_group:function(e,t,n){if(!this.groups[e])return false;var r=this._parse_shape_collection(t);for(var i in r){var s=this.entities[r[i]];n?this._add_to(e,s):this._remove_from(e,s)}return true},_parse_shape_collection:function(e){e=String(e||"");if(!e.trim())return[];var t=this;return e.split(",").map(function(e){var n=e.trim();n=t.translation_table[n]||n;return n})},_change_color:function(e,t){if(e.shape.attr("fill")!=t){e.shape.attr({fill:t,stroke:this.colors.edge})}},_scaled:function(e){return e*this.options.scale},_unpaint_one:function(e){e=e.trim();if(!this.painted[e])return false;delete this.painted[e];var t=this.entities[e];if(!t)return false;this._change_color(t,this._get_color(t));return true},_create_translation_table:function(){this.translation_table=this.options["translation-table"];this.translation_table=this.translation_table||(this._translation_table?this._translation_table():{})}})})(jQuery)
 
 
 

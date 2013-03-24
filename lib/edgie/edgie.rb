@@ -6,4 +6,10 @@ module Edgie
     generator.run
   end
 
+  def self.sample(svg_filename)
+    generator = Edgie::Generator.new(svg_filename)
+    generator.sample = true
+    generator.run
+  end
+
 end

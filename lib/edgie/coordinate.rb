@@ -20,6 +20,10 @@ module Edgie
       self.x_point, self.y_point = seed
     end
 
+    def self.new_or_self(*args)
+      args.first.is_a?(self) ? args.first : new(*args)
+    end
+
     def self.to_bigdec(*args)
       rtn = args.map do |v|
         (v.nil? or v.is_a?(BigDecimal)) ? v : BigDecimal(v.to_f.to_s)
@@ -34,7 +38,7 @@ module Edgie
     
     #string representation
     def to_s
-      "[#{x_point.round},#{y_point.round}]".ljust(15)
+      "[#{x_point.round(2).to_s.ljust(7)},#{y_point.round(2).to_s.ljust(7)}]"
     end
     alias :inspect :to_s
     alias :to_json :to_s
@@ -47,17 +51,17 @@ module Edgie
     def slope(coord)
       h = x_offset(coord)
       v = y_offset(coord)
-      v/h if h.abs > BigDecimal('0.09')
+      v/h if h.abs > BigDecimal('0.004')
     end
     
     def x_point=(val)
       val = self.class.to_bigdec(val)
-      @x_point = val && val.round
+      @x_point = val && val.round(2)
     end
     
     def y_point=(val)
       val = self.class.to_bigdec(val)
-      @y_point = val && val.round
+      @y_point = val && val.round(2)
     end
 
     #equality and usage as a key in a hash require this
@@ -134,10 +138,6 @@ module Edgie
       coord and y_point == coord.y_point 
     end
     alias :south_as? :north_as?
-
-    def distance_from_origin
-      self.class.distance(x_point, y_point, 0, 0)
-    end
     
   end
 end
