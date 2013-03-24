@@ -17,7 +17,7 @@ module Edgie
     def run
       paths_array = load_paths
       parse_paths(paths_array)
-      build_edges
+      #build_edges
 
       template = load_template
 
@@ -27,8 +27,8 @@ module Edgie
         :paths => paths,
         :entities => entities,
         :longest_name => longest_name,
-        :height => sw_point.y_point.ceil + 80,
-        :width => sw_point.x_point.ceil + 60
+        :height => height,
+        :width => width
       )
 
       content = template.evaluate(context)

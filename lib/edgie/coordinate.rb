@@ -47,17 +47,17 @@ module Edgie
     def slope(coord)
       h = x_offset(coord)
       v = y_offset(coord)
-      v/h if v.abs > 0.09
+      v/h if h.abs > BigDecimal('0.09')
     end
     
     def x_point=(val)
       val = self.class.to_bigdec(val)
-      @x_point = val && val.round(1)
+      @x_point = val && val.round
     end
     
     def y_point=(val)
       val = self.class.to_bigdec(val)
-      @y_point = val && val.round(1)
+      @y_point = val && val.round
     end
 
     #equality and usage as a key in a hash require this

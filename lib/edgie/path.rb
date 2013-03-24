@@ -22,9 +22,9 @@ module Edgie
       return points if idx == 0
       idx = length + idx if idx < 0
       @points = if closed?
-        points[idx..-1] + points[1..idx-1] + points[idx..idx]
+        (points[idx..-1] + points[1..idx-1]).uniq + points[idx..idx].uniq
       else
-        points[idx..-1] + points[0..idx-1]
+        (points[idx..-1] + points[0..idx-1]).uniq
       end
     end
 
@@ -42,10 +42,6 @@ module Edgie
     end
     alias :eql? :==
 
-    # def add_neighbor(path_id)
-    #   self.neighbors |= [path_id]
-    # end
-
     def select(&blk)
       new_path = self.class.new
       points.each do |point|
@@ -54,13 +50,6 @@ module Edgie
       end
       new_path
     end
-
-    # def make_rect(path)
-    #   rect = Rectangle.new
-    #   rect.adjust_rect(path.select {|point| contains?(point)})
-    #   rect.adjust_rect(select {|point| path.contains?(point)})
-    #   rect
-    # end
 
     def intercept(contained_coord, coord)
 
@@ -98,7 +87,7 @@ module Edgie
         end
       end
 
-      [point1,point2].compact.sort_by {|point| point - coord}.first
+      [point1,point2].compact.uniq.sort_by {|point| point - coord}.first
     end
 
     def head_idx(c_point, path)
@@ -123,13 +112,10 @@ module Edgie
 
     def splice(idx0, idx1, path)
       @points[idx0..idx1] = path.is_a?(Edgie::Path) ? path.points : path
-      if points.first != points.last
-        if idx0 == 0
-          @points[-1] = points.first
-        else
-          @points[0] = points.last
-        end
-      end
+      
+      was = closed?
+      @points.uniq!
+      @points.push(@points.first) if was
     end
 
     def inflate_for(path)
@@ -182,19 +168,30 @@ module Edgie
     end
 
     def build_edge(path)
-      debugger
       pivot_for(path)
       path.pivot_for(self)
 
-      # ary0 = points.select {|point| path.contains?(point)}
-      # ary1 = path.points.select {|point| contains?(point)}
+      ary0 = points.select {|point| path.contains?(point)}.uniq
+      ary1 = path.points.select {|point| contains?(point)}.uniq
 
-      # if (ary0.first - ary1.first) >  (ary0.first - ary1.last)
-      #   path.reverse!
-      #   path.pivot(1)
-      #   path.pivot_for(self)
-      #   ary1 = path.points.select {|point| contains?(point)}
-      # end
+      return if ary0.length < 2 or ary1.length < 2
+
+      if (ary0.first - ary1.first) >  (ary0.first - ary1.last)
+        path.reverse!
+        path.pivot(1)
+        path.pivot_for(self)
+        ary1 = path.points.select {|point| contains?(point)}
+      end
+
+      inflated = Edgie::InflatedPath.new(ary1)
+
+      my_pt0, o_pt0 = inflated.find_head(ary0)
+      idx = ary0.index(my_pt0)
+      my_pt1, o_pt1 = inflated.find_tail(ary0[idx..-1])
+
+      idx0, idx1 = index(my_pt0), index(my_pt1)
+      idx2, idx3 = path.index(o_pt0), path.index(o_pt1)
+      path.splice(idx2, idx3, points[idx0..idx1])
 
     end
 
