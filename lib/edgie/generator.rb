@@ -86,10 +86,11 @@ module Edgie
     end
 
     def adjust_for_origin
+      x, y = -ne_point.x_point.floor, -ne_point.y_point.floor + 50
       paths.each do |path_id, path|
         new_path = Edgie::Path.new(path_id)
         path.points.each do |point|
-          point.move!(-ne_point.x_point.floor, -ne_point.y_point.floor)
+          #point.move!(x, y)
           new_path << point
         end
         paths[path_id] = new_path

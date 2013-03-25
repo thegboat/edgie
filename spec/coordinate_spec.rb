@@ -90,4 +90,29 @@ describe Edgie::Coordinate do
       hash.has_key?(coords2).should eq(true)
     end
   end
+
+  describe "reflection" do
+
+    it "should know it relative position" do
+      coord1 = Edgie::Coordinate.new(1,1)
+      coord2 = Edgie::Coordinate.new(2,2)
+      coord3 = Edgie::Coordinate.new(1,2)
+      coord1.east_of?(coord2).should eq(true)
+      coord2.east_of?(coord3).should eq(false)
+      coord1.west_of?(coord2).should eq(false)
+      coord2.west_of?(coord3).should eq(true)
+      coord1.north_of?(coord2).should eq(true)
+      coord2.north_of?(coord1).should eq(false)
+      coord1.south_of?(coord2).should eq(false)
+      coord2.south_of?(coord1).should eq(true)
+      coord1.east_as?(coord3).should eq(true)
+      coord1.east_as?(coord2).should eq(false)
+      coord1.west_as?(coord3).should eq(true)
+      coord1.west_as?(coord2).should eq(false)
+      coord1.north_as?(coord3).should eq(false)
+      coord2.north_as?(coord3).should eq(true)
+      coord1.south_as?(coord3).should eq(false)
+      coord3.south_as?(coord2).should eq(true)
+    end
+  end
 end
