@@ -12,7 +12,7 @@ module Edgie
     end
 
     def name
-      title.downcase
+      title.underscore_plus
     end
 
     def add_path(val)

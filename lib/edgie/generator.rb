@@ -70,7 +70,7 @@ module Edgie
       return SAMPLE_OUTPUT_FILENAME if sample?
       default = File.basename(svg_filename, File.extname(svg_filename)) << ".js"
       if @output_filename
-        if File.directory?(@output_filename)
+        if File.directory?(@output_filename) and @output_filename =~ /\/$/
           "#{@output_filename.chomp('/')}/#{default}"
         else
           @output_filename.chomp('.js') << ".js"
@@ -99,7 +99,7 @@ module Edgie
       paths.each do |path_id, path|
         new_path = Edgie::Path.new(path_id)
         path.points.each do |point|
-          #point.move!(x, y)
+          point.move!(x, y)
           new_path << point
         end
         paths[path_id] = new_path
@@ -119,7 +119,7 @@ module Edgie
 
       @paths = paths_array.inject(ActiveSupport::OrderedHash.new) do |result,path|
 
-        entity = entities[path['id'].downcase] = Edgie::Entity.new(path['id'])
+        entity = entities[path['id'].underscore_plus] = Edgie::Entity.new(path['id'])
         subpaths = path['d'].scan(/M[C\d\.\s,]*Z/)
 
         subpaths.each do |subpath|
