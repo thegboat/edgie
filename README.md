@@ -3,6 +3,8 @@ edgie
 
 ruby gem to convert svg to interactive js maps
 
+It works!
+
 
 #### Todo
 
@@ -33,4 +35,4 @@ This tool is based on SC County Map not the other way around.
 When the js file is created some tweaking (especially with label placement) will likely need to be done.
 
 
-It works!
+[It works!]: http://rawgithub.com/thegboat/examples/master/edgie/example.html
