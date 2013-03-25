@@ -26,7 +26,7 @@ module Edgie
       adjust_for_origin
 
       @context = Erubis::Context.new(
-        :widget_name => output_filename.gsub('.js', ''),
+        :widget_name => widget_name,
         :translation_table => translation_table,
         :paths => paths,
         :entities => entities,
@@ -36,6 +36,10 @@ module Edgie
       )
 
       render
+    end
+
+    def widget_name
+      File.basename(output_filename, File.extname(output_filename))
     end
 
     def render
@@ -63,11 +67,16 @@ module Edgie
     end
 
     def output_filename
-      return SAMPLE_OUTPUT_FILENAME if sample? 
+      return SAMPLE_OUTPUT_FILENAME if sample?
+      default = File.basename(svg_filename, File.extname(svg_filename)) << ".js"
       if @output_filename
-        @output_filename =~ /\.js$/ ? @output_filename : (@output_filename + ".js")
+        if File.directory?(@output_filename)
+          "#{@output_filename.chomp('/')}/#{default}"
+        else
+          @output_filename.chomp('.js') << ".js"
+        end
       else
-        File.basename(svg_filename, File.extname(svg_filename)) << ".js"
+        default
       end
     end
 
