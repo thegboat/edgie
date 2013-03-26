@@ -56,33 +56,33 @@ module Edgie
       slope = coord.slope(contained_coord)
 
       point1 = if slope
-        y_intercept = coord.y_point - (coord.x_point*slope)
+        y_intercept = coord.y_val - (coord.x_val*slope)
         if coord.west_of?(sw_point)
-          Edgie::Coordinate.new(sw_point.x_point - 0.1, y_intercept + (sw_point.x_point * slope))
+          Edgie::Coordinate.new(sw_point.x_val + 0.1, y_intercept + (sw_point.x_val + 0.1) * slope)
         elsif coord.east_of?(ne_point)
-          Edgie::Coordinate.new(ne_point.x_point + 0.1, y_intercept + (ne_point.x_point * slope))
+          Edgie::Coordinate.new(ne_point.x_val - 0.1, y_intercept + (ne_point.x_val - 0.1) * slope)
         else
-          coord
+          contained_coord
         end
       end
 
       point2 = if slope != 0
         if slope
-          y_intercept = coord.y_point - (coord.x_point*slope)
+          y_intercept = coord.y_val - (coord.x_val*slope)
           if coord.south_of?(sw_point)
-            Edgie::Coordinate.new((sw_point.y_point - y_intercept)/slope, sw_point.y_point - 0.1)
+            Edgie::Coordinate.new((sw_point.y_val - y_intercept - 0.1)/slope, sw_point.y_val - 0.1)
           elsif coord.north_of?(ne_point)
-            Edgie::Coordinate.new((ne_point.y_point - y_intercept)/slope, ne_point.y_point + 0.1)
+            Edgie::Coordinate.new((ne_point.y_val - y_intercept + 0.1)/slope, ne_point.y_val + 0.1)
           else
-            coord
+            contained_coord
           end
         else
           if coord.south_of?(sw_point)
-            Edgie::Coordinate.new(coord.x_point, sw_point.y_point - 0.1)
+            Edgie::Coordinate.new(coord.x_val, sw_point.y_val - 0.1)
           elsif coord.north_of?(ne_point)
-            Edgie::Coordinate.new(coord.x_point, ne_point.y_point + 0.1)
+            Edgie::Coordinate.new(coord.x_val, ne_point.y_val + 0.1)
           else
-            coord
+            contained_coord
           end
         end
       end
@@ -91,6 +91,8 @@ module Edgie
     end
 
     def splice(head,tail)
+      was = closed?
+
       if head.prev_point
         idx = index(head)
         necks = head.next_point
@@ -104,34 +106,35 @@ module Edgie
         head.prev_point = prev
         head.next_point = tail
       end
-      point[idx..idx] = [head,tail]
-      
-      was = closed?
+
+      @points[idx..idx] = [head,tail]
       @points.uniq!
-      @points.push(@points.first) if was
+      close_path! if was
     end
     
-    def contained_chain(path)
+    def chain_endpoints(path)
       rtn = []
-      pts = select {|pt| path.contains?(pt)}
-      cur = head = pts.detect {|pt| !path.contains?(pt.prev_point)}
-      while path.contains?(cur)
-        rtn << cur
-        cur = cur.next_point
+      head = tail = nil
+      points.each do |pt|
+        if path.contains?(pt)
+          head = pt unless head or path.contains?(pt.prev_point)
+          tail = pt unless tail or path.contains?(pt.next_point) 
+        end
+        break if head and tail
       end
-      tail = rtn.last
 
-      new_head = intercept(head, head.prev_point)
+      return unless head and tail
+      
+      new_head = path.intercept(head, head.prev_point)
       splice(new_head, head) if new_head - head > 0.1
-      new_tail = intercept(tail, tail.next_point)
+      new_tail = path.intercept(tail, tail.next_point)
       splice(tail, new_tail) if new_tail - tail > 0.1
-
-
     end
 
     def build_edge(path)
       my_pts = contained_chain(path)
       ot_pts = path.contained_chain(self)
+      return unless my_pts and ot_pts
     end
 
 

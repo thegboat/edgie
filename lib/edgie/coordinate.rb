@@ -38,6 +38,26 @@ module Edgie
       x1, y1, x2, y2 = args
       to_bigdec(Math.sqrt((x1-x2)**2 + (y1-y2)**2))
     end
+
+    def self.build_chain(head, tail)
+      rtn = []
+      cur = head
+      begin
+        rtn << cur.inflate_to_prev
+        cur = cur.next_point
+      end until cur.prev_point == tail
+      rtn.flatten
+    end
+
+    def self.build_reverse_chain(head, tail)
+      rtn = []
+      cur = tail
+      begin
+        rtn << cur.inflate_to_next
+        cur = cur.prev_point
+      end while cur.next_point == head
+      rtn.flatten
+    end
     
     #string representation
     def to_s
@@ -121,23 +141,23 @@ module Edgie
     end
 
     def ne_ward(val)
-      x = [x_val, val.x_val].min
+      x = [x_val, val.x_val].max
       y = [y_val, val.y_val].min
       Coordinate.new([x, y])
     end
 
     def sw_ward(val)
-      x = [x_val, val.x_val].max
+      x = [x_val, val.x_val].min
       y = [y_val, val.y_val].max
       Coordinate.new([x, y])
     end
 
     def west_of?(coord)
-      !coord or x_val > coord.x_val 
+      !coord or x_val < coord.x_val 
     end
 
     def east_of?(coord)
-      !coord or x_val < coord.x_val 
+      !coord or x_val > coord.x_val 
     end
 
     def south_of?(coord)

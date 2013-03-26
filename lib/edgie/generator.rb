@@ -24,6 +24,7 @@ module Edgie
       paths_array = load_paths
       parse_paths(paths_array)
       adjust_for_origin
+      build_edges
 
       @context = Erubis::Context.new(
         :widget_name => widget_name,
@@ -32,7 +33,7 @@ module Edgie
         :entities => entities,
         :longest_name => longest_name,
         :height => sw_point.y_val,
-        :width => sw_point.x_val
+        :width => ne_point.x_val
       )
 
       render
@@ -95,13 +96,14 @@ module Edgie
     end
 
     def adjust_for_origin
-      x, y = -ne_point.x_val.floor, -ne_point.y_val.floor + 50
+      x, y = 0, -ne_point.y_val.floor + 50
       paths.each do |path_id, path|
         new_path = Edgie::Path.new(path_id)
         path.points.each do |point|
           point.move!(x, y)
           new_path << point
         end
+        new_path.close_path!
         paths[path_id] = new_path
         adjust_rect(new_path.ne_point, new_path.sw_point)
       end
@@ -144,6 +146,15 @@ module Edgie
         paths.values.sort_by do |path|
           (path.ne_point - midpoint) + (path.sw_point - midpoint)
         end.map(&:path_id)
+      end
+    end
+
+    def build_edges
+      edge_priority[0..-2].each_with_index do |target_id, index|
+        edge_priority[index..-1].each do |path_id|
+          next unless paths[target_id].neighbors?(paths[path_id])
+          paths[target_id].build_edge(paths[path_id])
+        end
       end
     end
 
