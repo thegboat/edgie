@@ -37,12 +37,10 @@ module Edgie
     def contained_corner(obj)
       return ne_point if obj.contains?(ne_point)
       return sw_point if obj.contains?(sw_point)
-      return obj.ne_point if contains?(obj.ne_point)
-      return obj.sw_point if contains?(obj.sw_point)
     end
 
     def neighbors?(obj)
-      !!contained_corner(obj)
+      !!(contained_corner(obj) || obj.contained_corner(self))
     end
 
   end
