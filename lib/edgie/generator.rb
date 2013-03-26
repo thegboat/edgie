@@ -139,6 +139,14 @@ module Edgie
       end
     end
 
+    def edge_priority
+      @edge_rank ||= begin
+        paths.values.sort_by do |path|
+          (path.ne_point - midpoint) + (path.sw_point - midpoint)
+        end.map(&:path_id)
+      end
+    end
+
   end
 
 end
