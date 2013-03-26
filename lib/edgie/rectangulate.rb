@@ -2,7 +2,7 @@ module Edgie
   module Rectangulate
 
     def self.included(base)
-      base.send(:attr_reader, :ne_point, :sw_point, :nw_point, :se_point)
+      base.send(:attr_reader, :ne_point, :sw_point)
     end
 
     def adjust_rect(*coords)
@@ -13,8 +13,6 @@ module Edgie
           @ne_point, @sw_point = ne_point.ne_ward(coord), sw_point.sw_ward(coord)
         end
       end
-      @nw_point = Coordinate.new([@sw_point.x_val, @ne_point.y_val])
-      @se_point = Coordinate.new([@ne_point.x_val, @sw_point.y_val])
       return [coords].flatten
     end
 
@@ -30,6 +28,21 @@ module Edgie
       if ne_point != sw_point
         ne_point.move(width/2, height/2)
       end
+    end
+
+    def contains?(coord)
+      ne_point == ne_point.ne_ward(coord) && sw_point == sw_point.sw_ward(coord)
+    end
+
+    def contained_corner(obj)
+      return ne_point if obj.contains?(ne_point)
+      return sw_point if obj.contains?(sw_point)
+      return obj.ne_point if contains?(obj.ne_point)
+      return obj.sw_point if contains?(obj.sw_point)
+    end
+
+    def neighbors?(obj)
+      !!contained_corner(obj)
     end
 
   end
