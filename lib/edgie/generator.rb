@@ -31,8 +31,8 @@ module Edgie
         :paths => paths,
         :entities => entities,
         :longest_name => longest_name,
-        :height => sw_point.y_point,
-        :width => sw_point.x_point
+        :height => sw_point.y_val,
+        :width => sw_point.x_val
       )
 
       render
@@ -95,7 +95,7 @@ module Edgie
     end
 
     def adjust_for_origin
-      x, y = -ne_point.x_point.floor, -ne_point.y_point.floor + 50
+      x, y = -ne_point.x_val.floor, -ne_point.y_val.floor + 50
       paths.each do |path_id, path|
         new_path = Edgie::Path.new(path_id)
         path.points.each do |point|
@@ -124,8 +124,10 @@ module Edgie
 
         subpaths.each do |subpath|
           result[counter] = Edgie::Path.new(counter)
+          subpath = subpath.scan(/\d+\.\d+,\d+\.\d+/)
+          subpath.uniq!
 
-          subpath.scan(/\d+\.\d+,\d+\.\d+/).each do |coord|
+          subpath.each do |coord|
             result[counter] << coord
           end
           adjust_rect(result[counter].ne_point, result[counter].sw_point)

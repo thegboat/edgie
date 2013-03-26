@@ -26,6 +26,19 @@ describe Edgie::Path do
       path.first.should eq(coord)
       path.last.should eq(coord)
     end
+
+    it "should close path  correctly" do
+      path = Edgie::Path.new
+
+
+      path << coord1 = Edgie::Coordinate.new(1,1)
+      path << coord2 = Edgie::Coordinate.new(2,2)
+      path << coord3 = Edgie::Coordinate.new(1,2)
+
+      path.close_path!
+
+      path.first.should eq(path.last)
+    end
   end
 
 end

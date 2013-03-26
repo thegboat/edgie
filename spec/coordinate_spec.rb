@@ -5,20 +5,20 @@ describe Edgie::Coordinate do
   describe "initialization" do
     it "should be initializable with string" do
       coord = Edgie::Coordinate.new("1,1")
-      coord.x_point.should eq(1)
-      coord.y_point.should eq(1)
+      coord.x_val.should eq(1)
+      coord.y_val.should eq(1)
     end
 
     it "should be initializable with array" do
       coord = Edgie::Coordinate.new([1,1])
-      coord.x_point.should eq(1)
-      coord.y_point.should eq(1)
+      coord.x_val.should eq(1)
+      coord.y_val.should eq(1)
     end
 
     it "should be initializable with arguments" do
       coord = Edgie::Coordinate.new(1,'1')
-      coord.x_point.should eq(1)
-      coord.y_point.should eq(1)
+      coord.x_val.should eq(1)
+      coord.y_val.should eq(1)
     end
 
     it "should be initializable with Coordinate and create a dupe" do
@@ -29,15 +29,15 @@ describe Edgie::Coordinate do
     end
   end
   
-  describe "y_point=, x_point=" do
-    it "should set y_point/x_point" do
+  describe "y_val=, x_val=" do
+    it "should set y_val/x_val" do
       coords = Edgie::Coordinate.new(0,0)
-      coords.y_point.should eq(0)
-      coords.x_point.should eq(0)
-      coords.y_point = 1
-      coords.y_point.should eq(1)
-      coords.x_point = 1
-      coords.x_point.should eq(1)
+      coords.y_val.should eq(0)
+      coords.x_val.should eq(0)
+      coords.y_val = 1
+      coords.y_val.should eq(1)
+      coords.x_val = 1
+      coords.x_val.should eq(1)
     end
   end
   
@@ -52,7 +52,7 @@ describe Edgie::Coordinate do
   end
       
   describe "to_a" do
-    it "should return [x_point,y_point] of Cooridnates object" do
+    it "should return [x_val,y_val] of Cooridnates object" do
       coords = Edgie::Coordinate.new(0,1)
       coords.to_a.should eq([BigDecimal('0'), BigDecimal('1')])
     end
@@ -113,6 +113,22 @@ describe Edgie::Coordinate do
       coord2.north_as?(coord3).should eq(true)
       coord1.south_as?(coord3).should eq(false)
       coord3.south_as?(coord2).should eq(true)
+    end
+
+    it "should know its next and prev point in path" do
+
+      path = Edgie::Path.new
+
+
+      path << coord1 = Edgie::Coordinate.new(1,1)
+      path << coord2 = Edgie::Coordinate.new(2,2)
+      path << coord3 = Edgie::Coordinate.new(1,2)
+
+      path.first.prev_point.should eq(nil)
+      path.first.next_point.should eq(coord2)
+      path.last.prev_point.should eq(coord2)
+      path.last.next_point.should eq(nil)
+
     end
   end
 end

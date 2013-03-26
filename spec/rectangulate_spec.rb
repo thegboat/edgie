@@ -9,14 +9,14 @@ describe "basic operations" do
   end
 
   it "should know its bounds" do
-    @rect.ne_point.x_point.should eq(0)
-    @rect.ne_point.y_point.should eq(0)
-    @rect.sw_point.x_point.should eq(1)
-    @rect.sw_point.y_point.should eq(1)
-    @rect.se_point.x_point.should eq(0)
-    @rect.se_point.y_point.should eq(1)
-    @rect.nw_point.x_point.should eq(1)
-    @rect.nw_point.y_point.should eq(0)
+    @rect.ne_point.x_val.should eq(0)
+    @rect.ne_point.y_val.should eq(0)
+    @rect.sw_point.x_val.should eq(1)
+    @rect.sw_point.y_val.should eq(1)
+    @rect.se_point.x_val.should eq(0)
+    @rect.se_point.y_val.should eq(1)
+    @rect.nw_point.x_val.should eq(1)
+    @rect.nw_point.y_val.should eq(0)
   end
 
   it "should know its height" do

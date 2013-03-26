@@ -13,8 +13,8 @@ module Edgie
           @ne_point, @sw_point = ne_point.ne_ward(coord), sw_point.sw_ward(coord)
         end
       end
-      @nw_point = Coordinate.new([@sw_point.x_point, @ne_point.y_point])
-      @se_point = Coordinate.new([@ne_point.x_point, @sw_point.y_point])
+      @nw_point = Coordinate.new([@sw_point.x_val, @ne_point.y_val])
+      @se_point = Coordinate.new([@ne_point.x_val, @sw_point.y_val])
       return [coords].flatten
     end
 

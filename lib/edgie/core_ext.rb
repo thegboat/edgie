@@ -4,3 +4,8 @@ class String
     underscore.gsub(/\s+/,'_')
   end
 end
+
+class Hash
+
+  alias :to_ia :with_indifferent_access
+end

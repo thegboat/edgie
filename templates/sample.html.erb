@@ -5,8 +5,14 @@
   </head>
   <body>
 
+    <div id="paper" />
+
     <script>
-      paper = Raphael("paper", 865, 765);
+      paper = Raphael("paper", <%= @width %>, <%= @height %>);
+
+      img = paper.image('body-map-image.jpg', 0,0, <%= @width %>, <%= @height %>)
+
+      img.toBack()
 
       paths = {
         <% @paths.each do |path_id, path| %>
