@@ -39,25 +39,72 @@ module Edgie
       to_bigdec(Math.sqrt((x1-x2)**2 + (y1-y2)**2))
     end
 
-    def self.build_chain(head, tail)
+    def chain(tail)
+      cur = self
       rtn = []
-      cur = head
-      begin
-        rtn << cur.inflate_to_prev
+      while cur.prev_point != tail
+        rtn << cur
         cur = cur.next_point
-      end until cur.prev_point == tail
-      rtn.flatten
+      end
+      rtn
     end
 
-    def self.build_reverse_chain(head, tail)
-      rtn = []
-      cur = tail
-      begin
-        rtn << cur.inflate_to_next
-        cur = cur.prev_point
-      end while cur.next_point == head
-      rtn.flatten
-    end
+    # def reverse_chain(head)
+    #   rtn = []
+    #   cur = self
+    #   begin
+    #     rtn << cur
+    #     cur = cur.prev_point
+    #   end while cur.next_point == head;
+    #   rtn.flatten
+    # end
+
+    # def in_chain?
+    #   !!(next_point and prev_point)
+    # end
+
+    # def inflate(reverse = false)
+    #   rtn = [self]
+    #   slope = reverse ? prev_slope : next_slope
+    #   point = reverse ? prev_point : next_point
+
+    #   x_off = x_offset(point)
+    #   y_off = y_offset(point)
+
+    #   return [self] if [x_off.abs, y_off.abs].max < 1
+
+    #   rtn << if slope
+    #     y_intercept = y_val - (x_val*slope)
+
+    #     if x_off.abs > y_off.abs
+    #       by = x_off/10
+    #       (x_val+by).step(point.x_val - by, by).to_a.map do |x|
+    #         Edgie::Coordinate.new(x, y_intercept + (x * slope))
+    #       end
+    #     else
+    #       by = y_off/10
+    #       (y_val+by).step(point.y_val - by, by).to_a.map do |y|
+    #         Edgie::Coordinate.new((y - y_intercept)/slope, y)
+    #       end
+    #     end
+    #   else
+    #     by = y_off/10
+    #     (y_val+by).step(point.y_val - by, by).to_a.map do |y|
+    #       Edgie::Coordinate.new(point.x_val, y)
+    #     end
+    #   end
+
+    #   last = 
+
+    #   rtn[1..-1].each_with_index do |point,i|
+    #     if reverse
+    #       point.next_point = reverse ? rtn.first : point.prev_point
+    #       point.prev_point = rtn[i+1] unless 
+    #     else
+
+    #     end
+    #   end
+    # end
     
     #string representation
     def to_s

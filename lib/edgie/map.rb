@@ -1,6 +1,6 @@
 module Edgie
 
-  class Generator
+  class Map
 
     include Edgie::Rectangulate
 
@@ -10,7 +10,7 @@ module Edgie
     SAMPLE_TEMPLATE_FILE = DIRNAME + "templates/sample.html.erb"
     SAMPLE_OUTPUT_FILENAME = DIRNAME + "test/sample.html"
 
-    attr_reader :svg_filename, :paths, :entities, :context
+    attr_reader :svg_filename, :paths, :entities, :context, :edges
     attr_writer :sample
 
 
@@ -18,23 +18,17 @@ module Edgie
       @svg_filename = args.first
       @output_filename = args[1]
       @entities = ActiveSupport::OrderedHash.new
+      @edges = {}
     end
 
-    def run
+    def build
       paths_array = load_paths
       parse_paths(paths_array)
       adjust_for_origin
       build_edges
+      normalize_edges
 
-      @context = Erubis::Context.new(
-        :widget_name => widget_name,
-        :translation_table => translation_table,
-        :paths => paths,
-        :entities => entities,
-        :longest_name => longest_name,
-        :height => sw_point.y_val,
-        :width => ne_point.x_val
-      )
+      @context = Erubis::Context.new(:map => self)
 
       render
     end
@@ -51,6 +45,32 @@ module Edgie
       rtn = file.write(content)
       file.close
       rtn
+    end
+
+    def edge_directive(entity)
+      entity.paths.map do |path|
+        if path.edges.length == 1
+          "#{path.edges.first}z"
+        else
+          debugger if path.path_id == 1
+          path_edges = path.edges[1..-1].map {|edge_id| edges[edge_id]}
+          directive = ["#{path.edges.first}"]
+          prior_point = edges[path.edges.first].last
+
+          until path_edges.empty?
+            new_edge = path_edges.detect {|edge| edge.include?(prior_point)}
+            directive << if new_edge.last == prior_point
+              "#{new_edge.edge_id}r"
+              prior_point = new_edge.first
+            else
+              "#{new_edge.edge_id}"
+              prior_point = new_edge.last
+            end
+            path_edges.delete(new_edge)
+          end
+          directive
+        end
+      end.flatten.join(',')
     end
 
     def sample?
@@ -109,8 +129,7 @@ module Edgie
       end
 
       entities.each do |name, entity|
-        entity.paths.each do |path_id|
-          path = paths[path_id]
+        entity.paths.each do |path|
           entity.adjust_rect(path.ne_point, path.sw_point)
         end
       end
@@ -133,7 +152,7 @@ module Edgie
             result[counter] << coord
           end
           adjust_rect(result[counter].ne_point, result[counter].sw_point)
-          entity.add_path(counter)
+          entity.add_path(result[counter])
           counter += 1
         end
 
@@ -144,16 +163,63 @@ module Edgie
     def edge_priority
       @edge_rank ||= begin
         paths.values.sort_by do |path|
-          (path.ne_point - midpoint) + (path.sw_point - midpoint)
+          -(path.midpoint - midpoint)
         end.map(&:path_id)
       end
     end
 
+    def get_edges(path)
+      path.edges.map {|edge_id| edges[edge_id]}
+    end
+
     def build_edges
+
       edge_priority[0..-2].each_with_index do |target_id, index|
-        edge_priority[index..-1].each do |path_id|
-          next unless paths[target_id].neighbors?(paths[path_id])
-          paths[target_id].build_edge(paths[path_id])
+        target = paths[target_id]
+
+        neighbors = edge_priority[index..-1].map {|path_id| paths[path_id] if target.neighbors?(paths[path_id]) }.compact
+        if neighbors.empty?
+          edge_id = "#{target_id}"
+          edge = Edgie::Edge.new(target.points)
+          edges[edge_id] = edge
+          edge.edge_id = edge_id
+          target.edges << edge_id
+        else
+          neighbors.each do |path|
+            next unless edge = target.build_edge(path) and edge.length > 1
+            edge_id = "#{target_id}-#{path.path_id}"
+
+            edges[edge_id] = edge
+            edge.edge_id = edge_id
+            path.edges << edge_id
+            target.edges << edge_id
+              
+          end
+        end
+      end
+      true
+    end
+
+    def normalize_edges
+      edge_priority.each do |target_id|
+        target = paths[target_id]
+        ends = target.edges.map do |edge_id|
+          if edge_id == target.edges.first
+            edges[edge_id].last
+          elsif edge_id == target.edges.last
+            edges[edge_id].first
+          else
+            edges[edge_id].ends
+          end
+        end
+        ends.flatten!
+        ends.reverse!
+
+        ends[0..-2].each do |cur_end|
+          break if ends.empty?
+          pt = ends.sort_by {|end_pt| end_pt - cur_end}.first
+          ends.delete(pt)
+          cur_end.move!(pt.x_val, pt.y_val)
         end
       end
     end

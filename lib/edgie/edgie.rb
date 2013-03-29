@@ -2,14 +2,14 @@ module Edgie
 
   def self.create(svg_filename, output_filename = nil)
 
-    generator = Edgie::Generator.new(svg_filename, output_filename)
-    generator.run
+    map = Edgie::Map.new(svg_filename, output_filename)
+    map.build
   end
 
   def self.sample(svg_filename)
-    generator = Edgie::Generator.new(svg_filename)
-    generator.sample = true
-    generator.run
+    map = Edgie::Generator.new(svg_filename)
+    map.sample = true
+    map.build
   end
 
 end

@@ -1,5 +1,5 @@
 /*
- * jQuery UI  Interactive Map: <%= @widget_name.titleize %>
+ * jQuery UI  Interactive Map: <%= @map.widget_name.titleize %>
  *
  * Built using Edgie <%= Time.now %>
  * https://github.com/thegboat/edgie
@@ -13,7 +13,7 @@
 
 
 
-(function(e){e.widget("ui.<%= @widget_name %>",{
+(function(e){e.widget("ui.<%= @map.widget_name %>",{
     options: {
     scale: 1.0,
     members: '',
@@ -35,13 +35,13 @@
   },
 
   _translation_table : function(){
-    return <%= @translation_table %>
+    return <%= @map.translation_table %>
   },
 
   _base_entities : function(to_be_stored){
     var entities = {
-      <% @entities.each do |name, entity| %>
-        <%= name.ljust(@longest_name) %> : { name : <%= "'#{name}'".ljust(@longest_name) %>, title : <%= "'#{entity.title}'".ljust(@longest_name) %>, text : <%= entity.text_placement.to_s.ljust(15) %>, edges : <%= entity.edges.to_json %>},
+      <% @map.entities.each do |name, entity| %>
+        <%= name.ljust(@map.longest_name) %> : { name : <%= "'#{name}'".ljust(@map.longest_name) %>, title : <%= "'#{entity.title}'".ljust(@map.longest_name) %>, text : <%= entity.text_placement.to_s.ljust(15) %>, edges : <%= @map.edge_directive(entity) %>},
       <% end %>
     };
     if(to_be_stored){
@@ -62,18 +62,18 @@
 
   _base_paths : function(){
     return {
-      <% @paths.each do |path_id, path| %>
+      <% @map.paths.each do |path_id, path| %>
         <%= path_id.to_s.ljust(9) %> : <%= path.inspect %>,
       <% end %>
     };
   },
 
   _width : function(){
-    return <%= @width.ceil %>
+    return <%= @map.ne_point.x_val.ceil %>
   },
 
   _height : function(){
-    return <%= @height.ceil %>
+    return <%= @map.sw_point.y_val.ceil %>
   },
 
   paint : function(shapes, color){

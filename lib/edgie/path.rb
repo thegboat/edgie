@@ -4,21 +4,14 @@ module Edgie
     include Edgie::Rectangulate
 
     attr_reader :points, :path_id
+    attr_accessor :edges
 
     delegate :empty?, :present?, :length, :index, :first, :last, :reverse!, :inspect, :select, :to => :points
 
     def initialize(path_id = nil)
       @path_id = path_id
       @points = []
-    end
-
-    def adjust_rect(*coords)
-      coords = [coords].flatten
-      if coords.empty?
-        points.each {|point| adjust_rect(point) }
-      else
-        super
-      end
+      @edges = []
     end
 
     def closed?
@@ -51,45 +44,6 @@ module Edgie
       end
     end
 
-    def intercept(contained_coord, coord)
-
-      slope = coord.slope(contained_coord)
-
-      point1 = if slope
-        y_intercept = coord.y_val - (coord.x_val*slope)
-        if coord.west_of?(sw_point)
-          Edgie::Coordinate.new(sw_point.x_val + 0.1, y_intercept + (sw_point.x_val + 0.1) * slope)
-        elsif coord.east_of?(ne_point)
-          Edgie::Coordinate.new(ne_point.x_val - 0.1, y_intercept + (ne_point.x_val - 0.1) * slope)
-        else
-          contained_coord
-        end
-      end
-
-      point2 = if slope != 0
-        if slope
-          y_intercept = coord.y_val - (coord.x_val*slope)
-          if coord.south_of?(sw_point)
-            Edgie::Coordinate.new((sw_point.y_val - y_intercept - 0.1)/slope, sw_point.y_val - 0.1)
-          elsif coord.north_of?(ne_point)
-            Edgie::Coordinate.new((ne_point.y_val - y_intercept + 0.1)/slope, ne_point.y_val + 0.1)
-          else
-            contained_coord
-          end
-        else
-          if coord.south_of?(sw_point)
-            Edgie::Coordinate.new(coord.x_val, sw_point.y_val - 0.1)
-          elsif coord.north_of?(ne_point)
-            Edgie::Coordinate.new(coord.x_val, ne_point.y_val + 0.1)
-          else
-            contained_coord
-          end
-        end
-      end
-
-      [point1,point2].compact.uniq.sort_by {|point| point - coord}.first
-    end
-
     def splice(head,tail)
       was = closed?
 
@@ -112,29 +66,31 @@ module Edgie
       close_path! if was
     end
     
-    def chain_endpoints(path)
-      rtn = []
-      head = tail = nil
-      points.each do |pt|
-        if path.contains?(pt)
-          head = pt unless head or path.contains?(pt.prev_point)
-          tail = pt unless tail or path.contains?(pt.next_point) 
-        end
-        break if head and tail
-      end
-
-      return unless head and tail
-      
-      new_head = path.intercept(head, head.prev_point)
-      splice(new_head, head) if new_head - head > 0.1
-      new_tail = path.intercept(tail, tail.next_point)
-      splice(tail, new_tail) if new_tail - tail > 0.1
+    def crop_region(path)
+      path.rect.crop_region(self)
     end
 
     def build_edge(path)
-      my_pts = contained_chain(path)
-      ot_pts = path.contained_chain(self)
-      return unless my_pts and ot_pts
+      my_pts = crop_region(path)
+      ot_pts = path.crop_region(self)
+
+      return if my_pts.empty? or ot_pts.empty?
+
+      rect0, rect1 = Rectangle.new(my_pts), Rectangle.new(ot_pts)
+      rect2 = nil
+
+      until rect2 == rect0
+        rect2 = Rectangle.new(my_pts)
+        if rect0 > rect1
+          my_pts = rect0.crop_region(path)
+        else
+          ot_pts = rect1.crop_region(self)
+        end
+        rect0, rect1 = Rectangle.new(my_pts), Rectangle.new(ot_pts)
+      end
+
+      Edgie::Edge.new(my_pts)
+
     end
 
 

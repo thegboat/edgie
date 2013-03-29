@@ -15,12 +15,8 @@ module Edgie
       title.underscore_plus
     end
 
-    def add_path(val)
-      @paths << val
-    end
-
-    def edges
-      paths.map {|path_id| "#{path_id}z"}
+    def add_path(path)
+      @paths << path
     end
 
     def text_placement
