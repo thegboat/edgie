@@ -120,7 +120,9 @@ module Edgie
       paths.each do |path_id, path|
         new_path = Edgie::Path.new(path_id)
         path.points.each do |point|
-          point.move!(x, y)
+          x_o = (x - (path.width/2))/path.width
+          y_o = (y - (path.height/2))/path.height
+          point.move!(x+x_o, y+y_o)
           new_path << point
         end
         new_path.close_path!
