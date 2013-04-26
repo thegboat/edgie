@@ -17,7 +17,7 @@ module Edgie
     def initialize(*args)
       @svg_filename = args.first
       @output_filename = args[1]
-      @entities = ActiveSupport::OrderedHash.new
+      @entities = {}
       @edges = {}
     end
 
@@ -25,8 +25,8 @@ module Edgie
       paths_array = load_paths
       parse_paths(paths_array)
       adjust_for_origin
-      build_edges
-      normalize_edges
+      # build_edges
+      # normalize_edges
 
       @context = Erubis::Context.new(:map => self)
 
@@ -117,21 +117,19 @@ module Edgie
 
     def adjust_for_origin
       x, y = 0, -ne_point.y_val.floor + 50
+      reset_rect
       paths.each do |path_id, path|
-        new_path = Edgie::Path.new(path_id)
-        path.points.each do |point|
-          x_o = (x - (path.width/2))/path.width
-          y_o = (y - (path.height/2))/path.height
-          point.move!(x+x_o, y+y_o)
-          new_path << point
+        path.points.map! do |point|
+          point.move!(x, y)
         end
-        new_path.close_path!
-        paths[path_id] = new_path
-        adjust_rect(new_path.ne_point, new_path.sw_point)
+        path.reset_rect(path.points)
+        adjust_rect(path.ne_point, path.sw_point)
       end
 
       entities.each do |name, entity|
-        entity.paths.each do |path|
+        entity.reset_rect
+        entity.paths.each do |path_id|
+          path = paths[path_id]
           entity.adjust_rect(path.ne_point, path.sw_point)
         end
       end
@@ -140,7 +138,7 @@ module Edgie
     def parse_paths(paths_array)
       counter = 1
 
-      @paths = paths_array.inject(ActiveSupport::OrderedHash.new) do |result,path|
+      @paths = paths_array.inject({}) do |result,path|
 
         entity = entities[path['id'].underscore_plus] = Edgie::Entity.new(path['id'])
         subpaths = path['d'].scan(/M[C\d\.\s,]*Z/)

@@ -41,7 +41,7 @@
   _base_entities : function(to_be_stored){
     var entities = {
       <% @map.entities.each do |name, entity| %>
-        <%= name.ljust(@map.longest_name) %> : { name : <%= "'#{name}'".ljust(@map.longest_name) %>, title : <%= "'#{entity.title}'".ljust(@map.longest_name) %>, text : <%= entity.text_placement.to_s.ljust(15) %>, edges : <%= @map.edge_directive(entity) %>},
+        <%= name.ljust(@map.longest_name) %> : { name : <%= "'#{name}'".ljust(@map.longest_name) %>, title : <%= "'#{entity.title}'".ljust(@map.longest_name) %>, text : <%= entity.text_placement.to_s.ljust(15) %>, edges : <%= entity.edges.inspect %>},
       <% end %>
     };
     if(to_be_stored){

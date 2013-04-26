@@ -1,8 +1,7 @@
 module Edgie
   class Coordinate
     
-    attr_reader :x_val, :y_val
-    attr_accessor :next_point, :prev_point
+    attr_reader :x_val, :y_val, :vertex
 
     THRESHOLD = BigDecimal('0.01')
 
@@ -19,6 +18,8 @@ module Edgie
       else
         [0,0]
       end
+
+      @vertex = {}
 
       self.x_val, self.y_val = seed
     end
@@ -47,6 +48,32 @@ module Edgie
         cur = cur.next_point
       end
       rtn
+    end
+
+    def set_next_point_for(path_id, val)
+      path_id = path_id.path_id if path_id.is_a?(Edgie::Path)
+      vertex[path_id] ||= {}
+      vertex[path_id][:next] = val
+    end
+    
+    def set_prev_point_for(path_id, val)
+      path_id = path_id.path_id if path_id.is_a?(Edgie::Path)
+      vertex[path_id] ||= {}
+      vertex[path_id][:prev] = val
+    end
+
+    def prev_point_for(path_id)
+      path_id = path_id.path_id if path_id.is_a?(Edgie::Path)
+      vertex[path_id] && vertex[path_id][:prev]
+    end
+
+    def next_point_for(path_id)
+      path_id = path_id.path_id if path_id.is_a?(Edgie::Path)
+      vertex[path_id] && vertex[path_id][:next]
+    end
+
+    def vertices?
+      vertex.keys.length > 0
     end
 
     # def reverse_chain(head)
@@ -122,22 +149,6 @@ module Edgie
       h = x_offset(coord)
       v = y_offset(coord)
       v/h if h.abs > THRESHOLD
-    end
-
-    def next_slope
-      slope(next_point)
-    end
-
-    def prev_slope
-      slope(prev_point)
-    end
-
-    def same_sloping?(coord)
-      m = slope(coord)
-      return false unless prev_point
-      return true if prev_slope == m
-      return false if prev_slope.nil? or m.nil?
-      return true if THRESHOLD > (prev_slope/m).abs
     end
     
     def x_val=(val)

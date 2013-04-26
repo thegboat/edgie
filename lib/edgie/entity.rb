@@ -16,11 +16,16 @@ module Edgie
     end
 
     def add_path(path)
-      @paths << path
+      adjust_rect(path.ne_point, path.sw_point)
+      @paths << path.path_id
     end
 
     def text_placement
       midpoint.move(-3*title.length, 0)
+    end
+
+    def edges
+      paths.map {|path_id| "#{path_id}z"}
     end
 
 

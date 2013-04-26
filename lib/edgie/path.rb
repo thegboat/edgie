@@ -22,8 +22,8 @@ module Edgie
       coord = Edgie::Coordinate.new_or_self(args) 
       return false if last == coord
       if last
-        last.next_point = coord
-        coord.prev_point = last
+        last.set_next_point_for(path_id, coord)
+        coord.set_prev_point_for(path_id, last)
       end
       points << coord
       adjust_rect(coord)
@@ -38,8 +38,8 @@ module Edgie
 
     def close_path!
       unless closed?
-        last.next_point = first
-        first.prev_point = last
+        last.set_next_point_for(path_id, first)
+        first.set_prev_point_for(path_id, last)
         points.push(first)
       end
     end
@@ -47,18 +47,20 @@ module Edgie
     def splice(head,tail)
       was = closed?
 
-      if head.prev_point
+      if head.prev_point_for(path_id)
         idx = index(head)
-        necks = head.next_point
-        necks.prev_point = head.next_point = tail
-        tail.prev_point = head
-        tail.next_point = necks
+        necks = head.next_point_for(path_id)
+        necks.set_prev_point_for(path_id, tail)
+        head.set_next_point_for(path_id, tail)
+        tail.set_prev_point_for(path_id, head)
+        tail.set_next_point_for(path_id, necks)
       else
         idx = index(tail)
-        prev = tail.prev_point
-        prev.next_point = tail.prev_point = head
-        head.prev_point = prev
-        head.next_point = tail
+        prev = tail.prev_point_for(path_id)
+        prev.set_next_point_for(path_id, head)
+        tail.set_prev_point_for(path_id, head)
+        head.set_prev_point_for(path_id, prev)
+        head.set_next_point_for(path_id,tail)
       end
 
       @points[idx..idx] = [head,tail]

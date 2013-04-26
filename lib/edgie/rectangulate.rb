@@ -13,6 +13,11 @@ module Edgie
 
     alias :rect :rectangle
 
+
+    def reset_rect(*coords)
+      @rectangle = Rectangle.new(*coords)
+    end
+
     def neighbors?(obj)
       return false if obj == self
       !!(rect.contained_corner(obj) || obj.rect.contained_corner(self))
